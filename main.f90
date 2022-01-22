@@ -240,135 +240,6 @@
 ! Age setting
     Do Iage = 1, 1, 1
 
-!=======================================!
-!  SETTING UP THE MONTE CARLO ANALYSIS  !
-!=======================================!
-!-----------------!
-!  Random number  !
-!-----------------!
-    CALL random_seed(size=seedsize)
-    allocate(seed(seedsize))
-    CALL system_clock(count=clock)
-    seed = clock
-    CALL random_seed(put=seed)
-
-!-------------------------------!
-!  Crustal S reservoirs [Emol]  !
-!-------------------------------!
-    Do I = 1, resample/2
-       CALL random_number(rnd1)
-       CALL random_number(rnd2)
-!  Total S = 400+-100 Emol
-       mean  =   400d0
-       sigma = 10000d0
-       Xrnd1 = sqrt(sigma)*sqrt(-2d0*log(rnd1))*cos(2d0*pi*rnd2)+mean
-       Xrnd2 = sqrt(sigma)*sqrt(-2d0*log(rnd1))*sin(2d0*pi*rnd2)+mean
-       Spy_rnd(2*I-1) = Xrnd1
-       Spy_rnd(2*I)   = Xrnd2
-    End Do
-    Do I = 1, resample/2
-       CALL random_number(rnd1)
-       CALL random_number(rnd2)
-!  Gypsum S = 50+-25 Emol
-       mean  = 50d0
-       sigma = 25d0**2d0
-       Xrnd1 = sqrt(sigma)*sqrt(-2d0*log(rnd1))*cos(2d0*pi*rnd2)+mean
-       Xrnd2 = sqrt(sigma)*sqrt(-2d0*log(rnd1))*sin(2d0*pi*rnd2)+mean
-       Sgyp_rnd(2*I-1) = Xrnd1
-       Sgyp_rnd(2*I)   = Xrnd2
-       If(Sgyp_rnd(2*I-1) < 0d0) then
-         Sgyp_rnd(2*I-1) = 0d0
-       End If
-       If(Sgyp_rnd(2*I) < 0d0) then
-         Sgyp_rnd(2*I) = 0d0
-       End If
-!  Pyrite S = Total S - Gypsum S
-       Spy_rnd(2*I-1) = Spy_rnd(2*I-1) - Sgyp_rnd(2*I-1)
-       Spy_rnd(2*I)   = Spy_rnd(2*I) - Sgyp_rnd(2*I)
-    End Do
-
-!--------------------------------------------!
-!  Global erosion/sedimentation factor, fsr  !
-!  fsr = 0.5+-0.25 (normalized to present)   !
-!--------------------------------------------!
-    Do I = 1,resample/2
-       CALL random_number(rnd1)
-       CALL random_number(rnd2)
-       mean  = 0.5d0
-       sigma = 0.25d0**2d0
-       Xrnd1 = sqrt(sigma)*sqrt(-2d0*log(rnd1))*cos(2d0*pi*rnd2)+mean
-       Xrnd2 = sqrt(sigma)*sqrt(-2d0*log(rnd1))*sin(2d0*pi*rnd2)+mean
-       fsr_rnd(2*I-1) = Xrnd1
-       fsr_rnd(2*I)   = Xrnd2
-       If(fsr_rnd(2*I-1) < 0d0) then
-         fsr_rnd(2*I-1) = 0d0
-       End If
-       If(fsr_rnd(2*I) < 0d0) then
-         fsr_rnd(2*I) = 0d0
-       End If
-    End Do
-
-!--------!
-! Others !
-!--------!
-    Do I = 1, resample
-! Pyrite burial efficiency: epy = 0.7 - 1.0
-      CALL random_number(rnd1)
-      epy_rnd(I) = 0.7d0 + 0.3d0*rnd1
-
-! Michaelis-Menten constant for MSR: Kso4 = 0.002 - 2 [mM]
-      CALL random_number(rnd1)
-      Kso4_rnd(I) = 2d0*10d0**(-3d0*rnd1)
-
-! Weathering factor: W = 0 - 2
-      CALL random_number(rnd1)
-!      W_rnd(I) = 10d0**(-2d0*rnd1)
-      W_rnd(I) = 2d0*rnd1
-
-! POM sinking velocity: Vpom = 10 - 100 [m/d]
-      CALL random_number(rnd1)
-      Vpom_rnd(I) = 90d0*rnd1 + 10d0
-
-! Atmospheric O2 level: pO2 = 0.01%PAL - 10%PAL
-      CALL random_number(rnd1)
-      pO2a_rnd(I) = 10d0**(-2d0*rnd1-1d0)*pO2a0
-
-! Maximum C/P ratio of primary producers (normalized to the Redfield ratio)
-      CALL random_number(rnd1)
-!      Rcp_rnd(I) = 3d0*rnd1 + 1d0
-      Rcp_rnd(I) = 1d0
-
-! Global erosion/sedimentation factor, fsr (nomalized to present)
-!      CALL random_number(rnd1)
-!      fsr_rnd(I) = rnd1
-      fsr_rnd(I) = fsr_rnd(I)
-
-! Phosphorus scavenging efficiency: 0 - 1
-      CALL random_number(rnd1)
-      fBIFP_rnd(I) = rnd1
-!      fBIFP_rnd(I) = 0d0
-
-! Export efficiency, fexport = 0.05 - 0.2
-      CALL random_number(rnd1)
-      fexport_rnd(I) = 0.05d0 + 0.15d0*rnd1
-
-! Initial value of atmospheric O2 levels: pO2init = 0.1%PAL - 100%PAL
-      CALL random_number(rnd1)
-      pO2init_rnd(I) = 10d0**(-3d0*rnd1+0d0)
-
-! Initial value of seawater SO4 levels: SO4init = 10 - 31 [mM]
-      CALL random_number(rnd1)
-      SO4init_rnd(I) = 10d0**(0.5d0*rnd1+1d0)
-
-! Reductant input flux: 0 - 5 [Tmol O2 equiv. yr^-1]
-      CALL random_number(rnd1)
-      Fred_rnd(I) = 5d0*rnd1
-
-! random.dat
-      Write(1,711) pO2a_rnd(I),Spy_rnd(I),Sgyp_rnd(I),epy_rnd(I),Kso4_rnd(I),W_rnd(I) &
-                  ,Vpom_rnd(I),Rcp_rnd(I),fsr_rnd(I),fBIFP_rnd(I),fexport_rnd(I)
-    End Do
-
     Ic_success = 0
     Ic_false   = 0
 !=============================== Start Monte Carlo analysis ===============================!
@@ -595,33 +466,21 @@
       Do J = 1, Nj
          CjPO4(1,J) = PO4j_start(J+1,1)
          CjNO3(1,J) = NO3j_start(J+1,1)
-!         CjNO3(1,J) = 0.1d0
          CjNH4(1,J) = NH4j_start(J+1,1)
-!         CjNH4(1,J) = 0.01d0
-!         CjSO4(1,J) = SO4init_rnd(Imc)
          CjSO4(1,J) = SO4j_start(J+1,1)
          CjH2S(1,J) = H2Sj_start(J+1,1)
-!         CjH2S(1,J) = 0.01d0
          CjCH4(1,J) = CH4j_start(J+1,1)
-!         CjCH4(1,J) = 0.01d0
          CjO2(1,J)  =  O2j_start(J+1,1)
-!         CjO2(1,J)  = 0.3d0
          If(CjO2(1,J) <= 1d-5) then
             CjO2(1,J) = 1d-5
          End If
          CdwPO4(1,J) = PO4j_start(J+1,2)
          CdwNO3(1,J) = NO3j_start(J+1,2)
-!         CdwNO3(1,J) = 0.1d0
          CdwNH4(1,J) = NH4j_start(J+1,2)
-!         CdwNH4(1,J) = 0.01d0
-!         CdwSO4(1,J) = SO4init_rnd(Imc)
          CdwSO4(1,J) = SO4j_start(J+1,2)
          CdwH2S(1,J) = H2Sj_start(J+1,2)
-!         CdwH2S(1,J) = 0.01d0
          CdwCH4(1,J) = CH4j_start(J+1,2)
-!         CdwCH4(1,J) = 0.1d0
          CdwO2(1,J)  =  O2j_start(J+1,2)
-!         CdwO2(1,J)  = 0.3d0
          If(CdwO2(1,J) <= 1d-5) then
             CdwO2(1,J)=1d-5
          End If
@@ -685,15 +544,8 @@
 !  TIME MEASUREMENT  !
 !====================!
       Ncount = Ncount + 1
-! Dynamic time step
-!      If(CjSO4(1,1) <= 1.2d0) then
-!      If(pO2a(1) >= 0.01d0*pO2a0) then
-         dt = 0.1d0
-!      Else
-!         dt = 0.01d0
-!      End If
+      dt = 0.1d0
 ! TIME [yr]
-!!      Time = Time + dt
       Time = Ncount*dt
 !
 !===================!
@@ -1150,15 +1002,18 @@
 !------------------------------!
 !  C/N/P stoichiometry of POM  !
 !------------------------------!
+    If(Redfield == 1) then
     ! Redfield stoichiometry
       Rcp = Rcp0
       Rnp = Rnp0
-      Rnc = Rnp/Rcp
-      Rpc = 1d0/Rcp
-      Roc = (Rcp+2d0*Rnp)/Rcp
+    Else
     ! Dynamic stoichiometry
-!      Rcp = Rcp0 + (RcpMax-Rcp0)*0.5d0*(1d0+dtanh((0.1d-3-CmPO4(1))/0.03d-3))
-!      Rnp = Rnp0 + (RnpMax-Rnp0)*0.5d0*(1d0+dtanh((0.1d-3-CmPO4(1))/0.03d-3))
+      Rcp = Rcp0 + (RcpMax-Rcp0)*0.5d0*(1d0+dtanh((0.1d-3-CmPO4(1))/0.03d-3))
+      Rnp = Rnp0 + (RnpMax-Rnp0)*0.5d0*(1d0+dtanh((0.1d-3-CmPO4(1))/0.03d-3))
+    End If
+    Rnc = Rnp/Rcp
+    Rpc = 1d0/Rcp
+    Roc = (Rcp+2d0*Rnp)/Rcp
 
 !--------------------------------!
 !  High-latitude surface region  !
@@ -1320,15 +1175,18 @@
 !------------------------------!
 !  C/N/P stoichiometry of POM  !
 !------------------------------!
+    If(Redfield == 1)then
    ! Redfield ratio
       RcpH = Rcp0
       RnpH = Rnp0
-      RncH = RnpH/RcpH
-      RpcH = 1d0/RcpH
-      RocH = (RcpH+2d0*RnpH)/RcpH
+    Else
    ! Dynamic stoichiometry
-!      RcpH = Rcp0 + (RcpMax-Rcp0)*0.5d0*(1d0+dtanh((0.1d-3-ChPO4(1))/0.03d-3))
-!      RnpH = Rnp0 + (RnpMax-Rnp0)*0.5d0*(1d0+dtanh((0.1d-3-ChPO4(1))/0.03d-3))
+      RcpH = Rcp0 + (RcpMax-Rcp0)*0.5d0*(1d0+dtanh((0.1d-3-ChPO4(1))/0.03d-3))
+      RnpH = Rnp0 + (RnpMax-Rnp0)*0.5d0*(1d0+dtanh((0.1d-3-ChPO4(1))/0.03d-3))
+    End If
+    RncH = RnpH/RcpH
+    RpcH = 1d0/RcpH
+    RocH = (RcpH+2d0*RnpH)/RcpH
 
 !====================!
 !  SOFT TISSUE PUMP  !
@@ -2188,10 +2046,6 @@
                 ,C14j_start(J,1),C14j_start(J,2)
       O2js(J)   = O2j_start(J,1)
       O2dwjs(J) = O2j_start(J,2)
-      write(*,*) PO4j_start(J,1),PO4j_start(J,2),NO3j_start(J,1),NO3j_start(J,2),O2j_start(J,1) ,O2j_start(J,2) &
-      ,SO4j_start(J,1),SO4j_start(J,2),NH4j_start(J,1),NH4j_start(J,2),H2Sj_start(J,1),H2Sj_start(J,2) &
-      ,CH4j_start(J,1),CH4j_start(J,2),Tempj_start(J,1),Tempj_start(J,2),Salj_start(J,1),Salj_start(J,2) &
-      ,C14j_start(J,1),C14j_start(J,2)
     End Do
     Close(1)
 
